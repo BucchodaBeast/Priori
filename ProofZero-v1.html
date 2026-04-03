@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ProofZero — Proof of Ignorance</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050810;
+  --surface: #0d1117;
+  --surface2: #161b27;
+  --surface3: #1e2535;
+  --border: rgba(255,255,255,0.07);
+  --border-bright: rgba(255,255,255,0.15);
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --accent: #00e5ff;
+  --accent2: #7c3aed;
+  --accent3: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --radius: 12px;
+  --glow: 0 0 40px rgba(0,229,255,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ── GRID BG ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ══════════════════════════════
+   LANDING / AUTH SCREEN
+══════════════════════════════ */
+#screen-auth {
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  gap: 0;
+}
+
+.auth-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: fadeDown 0.7s ease both;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.brand-icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 0 30px rgba(0,229,255,0.3);
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 30%, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-tagline {
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.auth-pills {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  animation: fadeDown 0.7s 0.1s ease both;
+  opacity: 0;
+}
+
+.pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.pill span { color: var(--accent); margin-right: 4px; }
+
+/* Auth card */
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--glow), 0 24px 60px rgba(0,0,0,0.4);
+  animation: fadeUp 0.7s 0.2s ease both;
+  opacity: 0;
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 2rem;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 0.6rem;
+  text-align: center;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+}
+
+.auth-tab.active {
+  background: var(--surface3);
+  color: var(--text);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.3);
+}
+
+.auth-form { display: none; flex-direction: column; gap: 1rem; }
+.auth-form.active { display: flex; }
+
+.field-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.field-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.field-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+}
+
+.field-input::placeholder { color: var(--muted); opacity: 0.6; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #0097a7);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem 1.5rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,229,255,0.25); }
+.btn-primary:active { transform: translateY(0); }
+
+.auth-divider {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.75rem;
+  position: relative;
+  margin: 0.5rem 0;
+}
+.auth-divider::before, .auth-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%; width: 40%;
+  height: 1px;
+  background: var(--border);
+}
+.auth-divider::before { left: 0; }
+.auth-divider::after { right: 0; }
+
+.auth-error {
+  color: var(--red);
+  font-size: 0.78rem;
+  display: none;
+  padding: 0.6rem 0.8rem;
+  background: rgba(239,68,68,0.08);
+  border-radius: 6px;
+  border: 1px solid rgba(239,68,68,0.2);
+}
+
+/* ══════════════════════════════
+   APP SHELL
+══════════════════════════════ */
+#screen-app {
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(5,8,16,0.8);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9rem;
+}
+
+.topbar-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #fff, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-badge {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.user-badge:hover { border-color: var(--border-bright); }
+.user-badge strong { color: var(--text); }
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* ── NAV TABS ── */
+.app-nav {
+  display: flex;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  gap: 0;
+  overflow-x: auto;
+}
+
+.nav-tab {
+  padding: 0.9rem 1.2rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-tab:hover:not(.active) { color: var(--text); }
+
+/* ── VIEWS ── */
+.app-view { display: none; flex: 1; }
+.app-view.active { display: block; }
+
+/* ══════════════════════════════
+   DASHBOARD VIEW
+══════════════════════════════ */
+.dashboard {
+  padding: 2rem 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+
+.dashboard-header p { color: var(--muted); font-size: 0.82rem; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--border-bright); }
+
+.stat-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.stat-value.cyan { color: var(--accent); }
+.stat-value.amber { color: var(--accent3); }
+.stat-value.green { color: var(--green); }
+.stat-value.purple { color: #a78bfa; }
+
+/* Section header */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+/* ── CERT LIST ── */
+.cert-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.cert-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.cert-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.2s;
+}
+
+.cert-item:hover { border-color: var(--border-bright); transform: translateX(2px); }
+.cert-item:hover::before { transform: scaleY(1); }
+
+.cert-item-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: var(--surface2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+}
+
+.cert-item-body { flex: 1; min-width: 0; }
+
+.cert-item-statement {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cert-item-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cert-meta-tag {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.cert-meta-tag.topic {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--accent);
+}
+
+.cert-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.status-badge.active { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.status-badge.pending { background: rgba(245,158,11,0.15); color: var(--accent3); border: 1px solid rgba(245,158,11,0.3); }
+
+.cert-item-delete {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: color 0.2s;
+}
+.cert-item-delete:hover { color: var(--red); }
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.empty-state p { font-size: 0.85rem; }
+.empty-state .empty-cta {
+  margin-top: 1rem;
+  display: inline-block;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ══════════════════════════════
+   CREATE VIEW
+══════════════════════════════ */
+.create-view {
+  padding: 2rem 1.5rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.create-view h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+
+.create-view .subtitle { color: var(--muted); font-size: 0.82rem; margin-bottom: 2rem; }
+
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-section-title {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-grid { display: flex; flex-direction: column; gap: 1.2rem; }
+
+.form-row { display: flex; gap: 1rem; }
+.form-row .field-group { flex: 1; }
+
+textarea.field-input {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+
+.category-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.category-btn:hover { border-color: var(--border-bright); color: var(--text); }
+.category-btn.selected { background: rgba(0,229,255,0.08); border-color: var(--accent); color: var(--accent); }
+.category-btn .cat-icon { display: block; font-size: 1.2rem; margin-bottom: 0.3rem; }
+
+/* Confidence slider */
+.slider-container { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.slider-track {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--surface3);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0,229,255,0.4);
+}
+
+.slider-value {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 45px;
+  text-align: right;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+/* Generate button */
+.btn-generate {
+  background: linear-gradient(135deg, var(--accent), #0097a7);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  letter-spacing: 0.03em;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+.btn-generate:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,229,255,0.25); }
+.btn-generate:active { transform: translateY(0); }
+
+/* ══════════════════════════════
+   CERTIFICATE MODAL
+══════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 660px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6), var(--glow);
+  animation: scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  overflow: hidden;
+  my-auto: 0;
+}
+
+.modal-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-header-left { flex: 1; }
+
+.modal-eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.modal-close {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.modal-close:hover { color: var(--text); border-color: var(--border-bright); }
+
+.modal-body { padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.2rem; }
+
+/* Certificate inside modal */
+.cert-document {
+  background: #0a0d14;
+  border: 1px solid rgba(0,229,255,0.15);
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.cert-document::before {
+  content: 'PROOF OF IGNORANCE';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 800;
+  color: rgba(0,229,255,0.03);
+  white-space: nowrap;
+  pointer-events: none;
+  letter-spacing: 0.1em;
+}
+
+.cert-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+
+.cert-id-display {
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.cert-id-display strong {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.verified-seal {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.65rem;
+  color: var(--green);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cert-statement-block {
+  background: rgba(0,229,255,0.04);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.2rem;
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.cert-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.cert-field label {
+  display: block;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.cert-field span {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.hash-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem;
+}
+
+.hash-block-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hash-block-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.hash-value {
+  font-size: 0.72rem;
+  color: #4ade80;
+  word-break: break-all;
+  line-height: 1.7;
+  letter-spacing: 0.05em;
+}
+
+.confidence-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--accent3);
+}
+
+/* Modal actions */
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.btn-action:active { transform: scale(0.97); }
+
+.btn-copy-hash { background: rgba(0,229,255,0.12); color: var(--accent); border: 1px solid rgba(0,229,255,0.2); }
+.btn-copy-hash:hover { background: rgba(0,229,255,0.2); }
+
+.btn-share { background: rgba(124,58,237,0.12); color: #a78bfa; border: 1px solid rgba(124,58,237,0.2); }
+.btn-share:hover { background: rgba(124,58,237,0.2); }
+
+.btn-delete-cert { background: rgba(239,68,68,0.08); color: var(--red); border: 1px solid rgba(239,68,68,0.15); }
+.btn-delete-cert:hover { background: rgba(239,68,68,0.15); }
+
+/* ══════════════════════════════
+   VERIFY VIEW
+══════════════════════════════ */
+.verify-view {
+  padding: 2rem 1.5rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.verify-view h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+.verify-view .subtitle { color: var(--muted); font-size: 0.82rem; margin-bottom: 2rem; }
+
+.verify-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.verify-method {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.verify-method:hover, .verify-method.selected {
+  border-color: var(--accent);
+  background: rgba(0,229,255,0.04);
+}
+
+.verify-method .method-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.verify-method .method-title { font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; margin-bottom: 0.3rem; }
+.verify-method .method-desc { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+
+#verify-form { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; }
+
+.verify-result-box {
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: none;
+  margin-top: 1.5rem;
+  animation: fadeUp 0.3s ease both;
+}
+
+.verify-result-box.match {
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.3);
+  display: block;
+}
+
+.verify-result-box.mismatch {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.3);
+  display: block;
+}
+
+.verify-result-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+
+.verify-result-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.verify-result-box.match .verify-result-title { color: var(--green); }
+.verify-result-box.mismatch .verify-result-title { color: var(--red); }
+
+.verify-result-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+
+/* ══════════════════════════════
+   TOAST
+══════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  z-index: 9999;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: rgba(16,185,129,0.4); color: var(--green); }
+.toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+/* ══════════════════════════════
+   ANIMATIONS
+══════════════════════════════ */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ══════════════════════════════
+   RESPONSIVE
+══════════════════════════════ */
+@media (max-width: 520px) {
+  .cert-fields { grid-template-columns: 1fr; }
+  .verify-methods { grid-template-columns: 1fr; }
+  .modal-body { padding: 1.2rem; }
+  .modal-header { padding: 1.2rem; }
+  .form-row { flex-direction: column; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .category-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════
+     AUTH SCREEN
+══════════════════════════════ -->
+<div class="screen active" id="screen-auth">
+  <div class="auth-glow"></div>
+
+  <div class="brand">
+    <div class="brand-logo">
+      <div class="brand-icon">🔐</div>
+      <div class="brand-name">ProofZero</div>
+    </div>
+    <div class="brand-tagline">Cryptographic Proof of Ignorance</div>
+  </div>
+
+  <div class="auth-pills">
+    <div class="pill"><span>⛓</span> SHA-256 Signed</div>
+    <div class="pill"><span>📴</span> Fully Offline</div>
+    <div class="pill"><span>🔒</span> Local-Only</div>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-form active" id="form-login">
+      <div class="auth-error" id="login-error"></div>
+      <div class="field-group">
+        <div class="field-label">Username</div>
+        <input class="field-input" id="login-username" type="text" placeholder="your_username" autocomplete="username">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Password</div>
+        <input class="field-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-primary" onclick="login()">Sign In</button>
+      <div class="auth-divider">stored locally on your device</div>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="auth-form" id="form-register">
+      <div class="auth-error" id="register-error"></div>
+      <div class="field-group">
+        <div class="field-label">Username</div>
+        <input class="field-input" id="reg-username" type="text" placeholder="your_username">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Display Name</div>
+        <input class="field-input" id="reg-display" type="text" placeholder="Your Name">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Password</div>
+        <input class="field-input" id="reg-password" type="password" placeholder="min 6 characters">
+      </div>
+      <button class="btn-primary" onclick="register()">Create Account</button>
+      <div class="auth-divider">no data leaves your device</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     APP SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon">🔐</div>
+      <div class="topbar-brand">ProofZero</div>
+    </div>
+    <div class="topbar-user">
+      <div class="user-badge" id="user-badge">👤 <strong id="topbar-username"></strong></div>
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="app-nav">
+    <button class="nav-tab active" onclick="switchView('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="switchView('create')">✦ New Proof</button>
+    <button class="nav-tab" onclick="switchView('verify')">🔍 Verify</button>
+  </div>
+
+  <!-- ── DASHBOARD VIEW ── -->
+  <div class="app-view active" id="view-dashboard">
+    <div class="dashboard">
+      <div class="dashboard-header">
+        <h1 id="dash-greeting">My Proofs</h1>
+        <p>All certificates are stored locally on this device</p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Proofs</div>
+          <div class="stat-value cyan" id="stat-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value amber" id="stat-month">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Verified</div>
+          <div class="stat-value green" id="stat-verified">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Categories</div>
+          <div class="stat-value purple" id="stat-cats">0</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Recent Certificates</div>
+      </div>
+
+      <div class="cert-list" id="cert-list">
+        <div class="empty-state">
+          <div class="empty-icon">📄</div>
+          <p>No proofs yet. Create your first certificate.</p>
+          <span class="empty-cta" onclick="switchView('create')">→ Create a Proof</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CREATE VIEW ── -->
+  <div class="app-view" id="view-create">
+    <div class="create-view">
+      <h1>New Proof of Ignorance</h1>
+      <p class="subtitle">Commit to what you don't know. Time-stamp it. Own it later.</p>
+
+      <div class="form-card">
+        <div class="form-section-title">Statement</div>
+        <div class="form-grid">
+          <div class="field-group">
+            <div class="field-label">Your ignorance statement</div>
+            <textarea class="field-input" id="new-statement" placeholder='e.g. "As of today I have not seen the Q4 earnings report and do not know if the company was profitable."'></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-section-title">Context</div>
+        <div class="form-grid">
+          <div class="form-row">
+            <div class="field-group">
+              <div class="field-label">Title / Short Label</div>
+              <input class="field-input" id="new-title" type="text" placeholder="e.g. Q4 Earnings">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Related Party (optional)</div>
+              <input class="field-input" id="new-party" type="text" placeholder="e.g. Tesla, Bitcoin…">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">Category</div>
+            <div class="category-grid">
+              <div class="category-btn" onclick="selectCategory(this,'Finance')"><span class="cat-icon">💰</span>Finance</div>
+              <div class="category-btn" onclick="selectCategory(this,'Politics')"><span class="cat-icon">🗳️</span>Politics</div>
+              <div class="category-btn" onclick="selectCategory(this,'Sports')"><span class="cat-icon">⚽</span>Sports</div>
+              <div class="category-btn" onclick="selectCategory(this,'Science')"><span class="cat-icon">🔬</span>Science</div>
+              <div class="category-btn" onclick="selectCategory(this,'Pop Culture')"><span class="cat-icon">🎬</span>Pop Culture</div>
+              <div class="category-btn" onclick="selectCategory(this,'Tech')"><span class="cat-icon">💻</span>Tech</div>
+              <div class="category-btn" onclick="selectCategory(this,'Business')"><span class="cat-icon">📈</span>Business</div>
+              <div class="category-btn" onclick="selectCategory(this,'Other')"><span class="cat-icon">🔖</span>Other</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-section-title">Confidence</div>
+        <div class="field-group">
+          <div class="field-label">How confident are you that you truly don't know this?</div>
+          <div class="slider-container">
+            <div class="slider-track">
+              <input type="range" min="0" max="100" value="80" id="confidence-slider" oninput="document.getElementById('confidence-val').textContent=this.value+'%'">
+              <div class="slider-value" id="confidence-val">80%</div>
+            </div>
+            <div class="slider-labels"><span>Not sure</span><span>Absolutely certain</span></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generateCert()">
+        <span>⛓</span> Generate & Sign Certificate
+      </button>
+    </div>
+  </div>
+
+  <!-- ── VERIFY VIEW ── -->
+  <div class="app-view" id="view-verify">
+    <div class="verify-view">
+      <h1>Verify a Certificate</h1>
+      <p class="subtitle">Confirm that a statement was signed before a given moment.</p>
+
+      <div class="verify-methods">
+        <div class="verify-method selected" id="method-manual" onclick="selectVerifyMethod('manual')">
+          <div class="method-icon">⌨️</div>
+          <div class="method-title">Manual Entry</div>
+          <div class="method-desc">Paste the statement, epoch and hash to verify</div>
+        </div>
+        <div class="verify-method" id="method-link" onclick="selectVerifyMethod('link')">
+          <div class="method-icon">🔗</div>
+          <div class="method-title">Paste Share Link</div>
+          <div class="method-desc">Auto-fill from a ProofZero share URL</div>
+        </div>
+      </div>
+
+      <div id="verify-form">
+        <div class="form-grid" id="verify-manual-fields">
+          <div class="field-group">
+            <div class="field-label">Original Statement</div>
+            <textarea class="field-input" id="v-statement" placeholder="Paste the exact original statement"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="field-group">
+              <div class="field-label">Signer Name</div>
+              <input class="field-input" id="v-name" type="text" placeholder="Username">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Unix Epoch</div>
+              <input class="field-input" id="v-epoch" type="text" placeholder="e.g. 1712345678">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field-group">
+              <div class="field-label">Category</div>
+              <input class="field-input" id="v-category" type="text" placeholder="e.g. Finance">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Confidence</div>
+              <input class="field-input" id="v-confidence" type="text" placeholder="e.g. 80">
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Certificate ID</div>
+            <input class="field-input" id="v-certid" type="text" placeholder="e.g. POI-A1B2C3D4">
+          </div>
+          <div class="field-group">
+            <div class="field-label">SHA-256 Hash</div>
+            <input class="field-input" id="v-hash" type="text" placeholder="Paste the full hash">
+          </div>
+          <button class="btn-generate" onclick="verifyCert()">
+            <span>🔍</span> Verify Certificate
+          </button>
+        </div>
+
+        <!-- Link verify -->
+        <div class="form-grid" id="verify-link-fields" style="display:none">
+          <div class="field-group">
+            <div class="field-label">ProofZero Share URL</div>
+            <input class="field-input" id="v-link" type="text" placeholder="Paste share URL here…" oninput="parseShareLink(this.value)">
+          </div>
+          <div id="link-parsed" style="display:none">
+            <div style="color:var(--green);font-size:0.8rem;margin-bottom:1rem">✓ Link parsed — fields auto-filled below.</div>
+          </div>
+          <button class="btn-generate" onclick="verifyCert()">
+            <span>🔍</span> Verify Certificate
+          </button>
+        </div>
+      </div>
+
+      <div class="verify-result-box" id="verify-result">
+        <div class="verify-result-icon" id="vr-icon"></div>
+        <div class="verify-result-title" id="vr-title"></div>
+        <div class="verify-result-desc" id="vr-desc"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CERTIFICATE MODAL ══ -->
+<div class="modal-overlay" id="cert-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-eyebrow">Certificate of Ignorance</div>
+        <div class="modal-title" id="modal-cert-title"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cert-document">
+        <div class="cert-top">
+          <div class="cert-id-display">
+            ID: <strong id="modal-cert-id"></strong>
+          </div>
+          <div class="verified-seal">✓ Signed</div>
+        </div>
+
+        <div class="cert-statement-block" id="modal-statement"></div>
+
+        <div class="cert-fields">
+          <div class="cert-field">
+            <label>Signed By</label>
+            <span id="modal-signer"></span>
+          </div>
+          <div class="cert-field">
+            <label>Timestamp</label>
+            <span id="modal-time"></span>
+          </div>
+          <div class="cert-field">
+            <label>Category</label>
+            <span id="modal-category"></span>
+          </div>
+          <div class="cert-field">
+            <label>Confidence</label>
+            <span id="modal-confidence" class="confidence-display"></span>
+          </div>
+        </div>
+
+        <div class="hash-block">
+          <div class="hash-block-label">SHA-256 Fingerprint</div>
+          <div class="hash-value" id="modal-hash"></div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-action btn-copy-hash" onclick="copyModalHash()">📋 Copy Hash</button>
+        <button class="btn-action btn-share" onclick="shareModalCert()">🔗 Share Link</button>
+        <button class="btn-action btn-delete-cert" onclick="deleteModalCert()">🗑 Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// STORAGE HELPERS
+// ═══════════════════════════════
+const DB = {
+  getUsers: () => JSON.parse(localStorage.getItem('pz_users') || '{}'),
+  setUsers: (u) => localStorage.setItem('pz_users', JSON.stringify(u)),
+  getCerts: (user) => JSON.parse(localStorage.getItem(`pz_certs_${user}`) || '[]'),
+  setCerts: (user, c) => localStorage.setItem(`pz_certs_${user}`, JSON.stringify(c)),
+  getSession: () => localStorage.getItem('pz_session'),
+  setSession: (u) => localStorage.setItem('pz_session', u),
+  clearSession: () => localStorage.removeItem('pz_session'),
+};
+
+// ═══════════════════════════════
+// CRYPTO
+// ═══════════════════════════════
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function hashPassword(pw) {
+  return sha256('PZPW:' + pw);
+}
+
+function buildPayload(cert) {
+  return `STATEMENT:${cert.statement}|SIGNER:${cert.signer}|EPOCH:${cert.epoch}|CATEGORY:${cert.category}|CONFIDENCE:${cert.confidence}|ID:${cert.id}`;
+}
+
+// ═══════════════════════════════
+// AUTH
+// ═══════════════════════════════
+let currentUser = null;
+let activeCertId = null;
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='login')||(i===1 && tab==='register')));
+  document.getElementById('form-login').classList.toggle('active', tab==='login');
+  document.getElementById('form-register').classList.toggle('active', tab==='register');
+}
+
+async function login() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!username || !password) { showError(errEl, 'Please fill in all fields.'); return; }
+
+  const users = DB.getUsers();
+  if (!users[username]) { showError(errEl, 'Account not found.'); return; }
+
+  const hashed = await hashPassword(password);
+  if (users[username].passwordHash !== hashed) { showError(errEl, 'Incorrect password.'); return; }
+
+  DB.setSession(username);
+  currentUser = { username, display: users[username].display };
+  launchApp();
+}
+
+async function register() {
+  const username = document.getElementById('reg-username').value.trim().toLowerCase();
+  const display  = document.getElementById('reg-display').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errEl    = document.getElementById('register-error');
+  errEl.style.display = 'none';
+
+  if (!username || !display || !password) { showError(errEl, 'Please fill in all fields.'); return; }
+  if (password.length < 6) { showError(errEl, 'Password must be at least 6 characters.'); return; }
+  if (!/^[a-z0-9_]+$/.test(username)) { showError(errEl, 'Username: letters, numbers, underscores only.'); return; }
+
+  const users = DB.getUsers();
+  if (users[username]) { showError(errEl, 'Username already taken.'); return; }
+
+  const hashed = await hashPassword(password);
+  users[username] = { display, passwordHash: hashed, createdAt: Date.now() };
+  DB.setUsers(users);
+  DB.setSession(username);
+  currentUser = { username, display };
+  launchApp();
+}
+
+function logout() {
+  DB.clearSession();
+  currentUser = null;
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-auth').classList.add('active');
+  document.getElementById('login-password').value = '';
+  toast('Signed out', 'success');
+}
+
+function showError(el, msg) {
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ═══════════════════════════════
+// APP LAUNCH
+// ═══════════════════════════════
+function launchApp() {
+  document.getElementById('screen-auth').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('topbar-username').textContent = currentUser.display;
+  document.getElementById('dash-greeting').textContent = `${currentUser.display}'s Proofs`;
+  renderDashboard();
+}
+
+// Auto-login on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const session = DB.getSession();
+  if (session) {
+    const users = DB.getUsers();
+    if (users[session]) {
+      currentUser = { username: session, display: users[session].display };
+      launchApp();
+    } else {
+      DB.clearSession();
+    }
+  }
+
+  // Check for verify link in URL
+  const params = new URLSearchParams(location.search);
+  if (params.get('verify')) {
+    const data = decodeShareData(params.get('verify'));
+    if (data) {
+      prefillVerifyFromData(data);
+      if (currentUser) { switchView('verify'); }
+    }
+  }
+});
+
+// ═══════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════
+function switchView(view) {
+  document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  const tabs = ['dashboard','create','verify'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(view)]?.classList.add('active');
+  if (view === 'dashboard') renderDashboard();
+}
+
+// ═══════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════
+const CATEGORY_ICONS = { Finance:'💰', Politics:'🗳️', Sports:'⚽', Science:'🔬', 'Pop Culture':'🎬', Tech:'💻', Business:'📈', Other:'🔖' };
+
+function renderDashboard() {
+  const certs = DB.getCerts(currentUser.username);
+  const now = new Date();
+  const thisMonth = certs.filter(c => {
+    const d = new Date(c.epoch * 1000);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const cats = new Set(certs.map(c => c.category)).size;
+
+  document.getElementById('stat-total').textContent   = certs.length;
+  document.getElementById('stat-month').textContent   = thisMonth.length;
+  document.getElementById('stat-verified').textContent = certs.length; // all are signed
+  document.getElementById('stat-cats').textContent    = cats;
+
+  const list = document.getElementById('cert-list');
+  if (certs.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><p>No proofs yet. Create your first certificate.</p><span class="empty-cta" onclick="switchView('create')">→ Create a Proof</span></div>`;
+    return;
+  }
+
+  list.innerHTML = [...certs].reverse().map(c => `
+    <div class="cert-item" onclick="openCert('${c.id}')">
+      <div class="cert-item-icon">${CATEGORY_ICONS[c.category] || '🔖'}</div>
+      <div class="cert-item-body">
+        <div class="cert-item-statement">"${escHtml(c.statement)}"</div>
+        <div class="cert-item-meta">
+          <span class="cert-meta-tag">${formatDate(c.epoch)}</span>
+          <span class="cert-meta-tag topic">${escHtml(c.category)}</span>
+          ${c.party ? `<span class="cert-meta-tag">re: ${escHtml(c.party)}</span>` : ''}
+        </div>
+      </div>
+      <div class="cert-item-right">
+        <div class="status-badge active">Signed</div>
+        <button class="cert-item-delete" onclick="event.stopPropagation();quickDelete('${c.id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════
+// GENERATE CERTIFICATE
+// ═══════════════════════════════
+let selectedCategory = '';
+
+function selectCategory(el, cat) {
+  document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCategory = cat;
+}
+
+async function generateCert() {
+  const statement  = document.getElementById('new-statement').value.trim();
+  const title      = document.getElementById('new-title').value.trim();
+  const party      = document.getElementById('new-party').value.trim();
+  const confidence = document.getElementById('confidence-slider').value;
+
+  if (!statement) { toast('Please enter your statement of ignorance.', 'error'); return; }
+  if (!selectedCategory) { toast('Please select a category.', 'error'); return; }
+
+  const epoch  = Math.floor(Date.now() / 1000);
+  const certId = 'POI-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+
+  const cert = {
+    id: certId,
+    statement,
+    title: title || statement.substring(0,40) + '…',
+    party,
+    category: selectedCategory,
+    confidence: parseInt(confidence),
+    signer: currentUser.username,
+    signerDisplay: currentUser.display,
+    epoch,
+    createdAt: Date.now(),
+  };
+
+  const payload = buildPayload(cert);
+  cert.hash = await sha256(payload);
+
+  const certs = DB.getCerts(currentUser.username);
+  certs.push(cert);
+  DB.setCerts(currentUser.username, certs);
+
+  // Reset form
+  document.getElementById('new-statement').value = '';
+  document.getElementById('new-title').value = '';
+  document.getElementById('new-party').value = '';
+  document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('selected'));
+  selectedCategory = '';
+  document.getElementById('confidence-slider').value = 80;
+  document.getElementById('confidence-val').textContent = '80%';
+
+  toast('Certificate generated!', 'success');
+  openCert(cert.id);
+}
+
+// ═══════════════════════════════
+// CERT MODAL
+// ═══════════════════════════════
+function openCert(id) {
+  const cert = DB.getCerts(currentUser.username).find(c => c.id === id);
+  if (!cert) return;
+  activeCertId = id;
+
+  document.getElementById('modal-cert-title').textContent = cert.title;
+  document.getElementById('modal-cert-id').textContent    = cert.id;
+  document.getElementById('modal-statement').textContent  = `"${cert.statement}"`;
+  document.getElementById('modal-signer').textContent     = cert.signerDisplay || cert.signer;
+  document.getElementById('modal-time').textContent       = formatDateTime(cert.epoch);
+  document.getElementById('modal-category').textContent   = `${CATEGORY_ICONS[cert.category]||''} ${cert.category}`;
+  document.getElementById('modal-confidence').textContent = `${cert.confidence}% certain`;
+  document.getElementById('modal-hash').textContent       = cert.hash;
+
+  document.getElementById('cert-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('cert-modal').classList.remove('open');
+  activeCertId = null;
+}
+
+document.getElementById('cert-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function copyModalHash() {
+  const cert = DB.getCerts(currentUser.username).find(c => c.id === activeCertId);
+  if (!cert) return;
+  navigator.clipboard.writeText(cert.hash).then(() => toast('Hash copied!', 'success')).catch(() => {
+    prompt('Copy hash:', cert.hash);
+  });
+}
+
+function shareModalCert() {
+  const cert = DB.getCerts(currentUser.username).find(c => c.id === activeCertId);
+  if (!cert) return;
+  const encoded = encodeShareData(cert);
+  const url = `${location.origin}${location.pathname}?verify=${encoded}`;
+  navigator.clipboard.writeText(url).then(() => toast('Share link copied!', 'success')).catch(() => {
+    prompt('Share this link:', url);
+  });
+}
+
+function deleteModalCert() {
+  if (!confirm('Delete this certificate? This cannot be undone.')) return;
+  const certs = DB.getCerts(currentUser.username).filter(c => c.id !== activeCertId);
+  DB.setCerts(currentUser.username, certs);
+  closeModal();
+  renderDashboard();
+  toast('Certificate deleted.', 'error');
+}
+
+function quickDelete(id) {
+  if (!confirm('Delete this certificate?')) return;
+  const certs = DB.getCerts(currentUser.username).filter(c => c.id !== id);
+  DB.setCerts(currentUser.username, certs);
+  renderDashboard();
+  toast('Deleted.', 'error');
+}
+
+// ═══════════════════════════════
+// VERIFY
+// ═══════════════════════════════
+let verifyMethod = 'manual';
+
+function selectVerifyMethod(m) {
+  verifyMethod = m;
+  document.getElementById('method-manual').classList.toggle('selected', m==='manual');
+  document.getElementById('method-link').classList.toggle('selected', m==='link');
+  document.getElementById('verify-manual-fields').style.display = m==='manual' ? 'flex' : 'none';
+  document.getElementById('verify-link-fields').style.display   = m==='link'   ? 'flex' : 'none';
+  document.getElementById('verify-result').className = 'verify-result-box';
+}
+
+async function verifyCert() {
+  const statement  = document.getElementById('v-statement').value.trim();
+  const name       = document.getElementById('v-name').value.trim();
+  const epoch      = document.getElementById('v-epoch').value.trim();
+  const category   = document.getElementById('v-category').value.trim();
+  const confidence = document.getElementById('v-confidence').value.trim();
+  const certId     = document.getElementById('v-certid').value.trim();
+  const expected   = document.getElementById('v-hash').value.trim().toLowerCase();
+
+  if (!statement || !epoch || !certId || !expected) {
+    toast('Please fill in Statement, Epoch, Certificate ID, and Hash.', 'error');
+    return;
+  }
+
+  const mockCert = { statement, signer: name, epoch: parseInt(epoch), category: category || 'Other', confidence: parseInt(confidence) || 0, id: certId };
+  const payload  = buildPayload(mockCert);
+  const computed = await sha256(payload);
+
+  const resultEl = document.getElementById('verify-result');
+
+  if (computed === expected) {
+    resultEl.className = 'verify-result-box match';
+    document.getElementById('vr-icon').textContent = '✅';
+    document.getElementById('vr-title').textContent = 'Certificate Verified';
+    document.getElementById('vr-desc').innerHTML = `The hash matches. <strong>${escHtml(name || 'The signer')}</strong> demonstrably committed this statement of ignorance on <strong>${formatDateTime(parseInt(epoch))}</strong>. The certificate has not been tampered with.`;
+  } else {
+    resultEl.className = 'verify-result-box mismatch';
+    document.getElementById('vr-icon').textContent = '❌';
+    document.getElementById('vr-title').textContent = 'Hash Mismatch';
+    document.getElementById('vr-desc').textContent = 'The recomputed hash does not match. One or more fields differ from the original certificate — it may have been altered or incorrectly transcribed.';
+  }
+
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ═══════════════════════════════
+// SHARE LINK ENCODING
+// ═══════════════════════════════
+function encodeShareData(cert) {
+  const data = { s: cert.statement, n: cert.signer, e: cert.epoch, c: cert.category, cf: cert.confidence, i: cert.id, h: cert.hash };
+  return btoa(encodeURIComponent(JSON.stringify(data)));
+}
+
+function decodeShareData(encoded) {
+  try { return JSON.parse(decodeURIComponent(atob(encoded))); } catch { return null; }
+}
+
+function parseShareLink(url) {
+  try {
+    const params = new URLSearchParams(new URL(url).search);
+    const data   = decodeShareData(params.get('verify'));
+    if (data) {
+      prefillVerifyFromData(data);
+      document.getElementById('link-parsed').style.display = 'block';
+    }
+  } catch {}
+}
+
+function prefillVerifyFromData(data) {
+  document.getElementById('v-statement').value  = data.s || '';
+  document.getElementById('v-name').value        = data.n || '';
+  document.getElementById('v-epoch').value       = data.e || '';
+  document.getElementById('v-category').value    = data.c || '';
+  document.getElementById('v-confidence').value  = data.cf || '';
+  document.getElementById('v-certid').value      = data.i || '';
+  document.getElementById('v-hash').value        = data.h || '';
+}
+
+// ═══════════════════════════════
+// UTILS
+// ═══════════════════════════════
+function formatDate(epoch) {
+  return new Date(epoch * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateTime(epoch) {
+  return new Date(epoch * 1000).toISOString().replace('T',' ').replace(/\.\d+Z$/, ' UTC');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// Enter key support on auth
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const active = document.querySelector('.auth-form.active');
+    if (active?.id === 'form-login') login();
+    else if (active?.id === 'form-register') register();
+  }
+});
+</script>
+</body>
+</html>
